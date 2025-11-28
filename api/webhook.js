@@ -1,25 +1,36 @@
-import fs from "fs";
-import path from "path";
+import crypto from "crypto";
 
-export default function handler(req, res) {
+let lastSuccessToken = null;  // Stores latest success token (in memory)
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  try {
     const event = req.body;
 
-    if (event.type === "PAYMENT_FORM_ORDER_WEBHOOK") {
-        const orderId = event.data.order.order_id;
-        const status = event.data.order.order_status;
+    console.log("Webhook Received:", event);
 
-        const file = path.join(process.cwd(), "paid.json");
-        let db = {};
+    const orderStatus = event?.data?.order?.order_status;
 
-        if (fs.existsSync(file)) {
-            db = JSON.parse(fs.readFileSync(file));
-        }
+    if (orderStatus === "PAID") {
+      // Generate secure token
+      lastSuccessToken = crypto.randomBytes(16).toString("hex");
 
-        if (status === "PAID") {
-            db[orderId] = true;
-            fs.writeFileSync(file, JSON.stringify(db, null, 2));
-        }
+      console.log("Generated Token:", lastSuccessToken);
+
+      return res.status(200).json({ success: true });
     }
 
-    res.status(200).json({ ok: true });
+    return res.status(200).json({ ignored: true });
+
+  } catch (e) {
+    console.error("Webhook Error:", e);
+    return res.status(500).json({ error: "Server Error" });
+  }
+}
+
+export function getToken() {
+  return lastSuccessToken;
 }
