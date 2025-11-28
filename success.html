@@ -1,2 +1,18 @@
-<h2>Payment Successful 🎉</h2>
-<p>Your file will be emailed shortly.</p>
+<script>
+const url = new URL(window.location.href);
+const orderId = url.searchParams.get("order_id");
+
+async function verify() {
+    const res = await fetch(`/api/check?order_id=${orderId}`);
+    const data = await res.json();
+
+    if (data.paid === true) {
+        window.location.href =
+          "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code?payment_status=success&secret_key=EBOOK_SECRET_K3Y_V2P8Q6R4S7T9W1X5Z0";
+    } else {
+        setTimeout(verify, 1500);
+    }
+}
+
+verify();
+</script>
