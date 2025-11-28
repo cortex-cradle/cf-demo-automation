@@ -1,25 +1,13 @@
-<h1 id="msg">Processing payment… please wait</h1>
+<h1 id="msg">Waiting for payment confirmation…</h1>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const orderId = params.get("order_id");
-
 async function checkPayment() {
-    if (!orderId) {
-        document.getElementById("msg").innerText = "Order ID missing.";
-        return;
-    }
-
-    const res = await fetch(`/api/check?id=${orderId}`);
-    const data = await res.json();
+    let response = await fetch("/api/check");
+    let data = await response.json();
 
     if (data.paid === true) {
-        // FINAL REDIRECT — tumhara Bookmintor download page
-        window.location.href =
-            "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code?payment_status=success&secret_key=EBOOK_SECRET";
+        window.location.href = data.url; 
     } else {
-        document.getElementById("msg").innerText =
-            "Waiting for payment confirmation…";
         setTimeout(checkPayment, 1500);
     }
 }
