@@ -1,16 +1,29 @@
-<h1 id="msg">Waiting for payment confirmation…</h1>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Checking Payment...</title>
+  <style>
+    body { font-family: 'Georgia'; font-size: 80px; text-align: center; margin-top: 200px; }
+  </style>
+</head>
+<body>
+
+Waiting for payment confirmation…
 
 <script>
-async function checkPayment() {
-    let response = await fetch("/api/check");
-    let data = await response.json();
+async function check() {
+    let res = await fetch("/api/check");
+    let data = await res.json();
 
     if (data.paid === true) {
         window.location.href = data.url; 
     } else {
-        setTimeout(checkPayment, 1500);
+        setTimeout(check, 1500);
     }
 }
 
-checkPayment();
+check();
 </script>
+
+</body>
+</html>
