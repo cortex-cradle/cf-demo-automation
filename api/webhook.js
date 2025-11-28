@@ -1,35 +1,28 @@
+import getRawBody from "raw-body";
 import nodemailer from "nodemailer";
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false,   // important
   },
 };
 
 export default async function handler(req, res) {
   try {
-    // Read raw body
-    const chunks = [];
-    for await (const chunk of req) {
-      chunks.push(chunk);
-    }
-    const rawBody = Buffer.concat(chunks).toString();
+    const rawBody = await getRawBody(req);
+    const data = JSON.parse(rawBody.toString());
 
-    // Parse JSON
-    const data = JSON.parse(rawBody);
-
-    // Validate secret
+    // Signature verify
     const signature = req.headers["x-webhook-signature"];
     if (!signature || signature !== process.env.WEBHOOK_SECRET) {
-      return res.status(401).json({ error: "Invalid Signature" });
+      return res.status(401).json({ error: "Invalid signature" });
     }
 
-    // Payment Data
     const order = data?.data?.order;
     const customer = data?.data?.customer_details;
 
     if (!order || !customer) {
-      return res.status(400).json({ error: "Invalid Payload" });
+      return res.status(400).json({ error: "Invalid payload" });
     }
 
     if (order.order_status !== "PAID") {
@@ -38,7 +31,7 @@ export default async function handler(req, res) {
 
     const userEmail = customer.customer_email;
 
-    // Send Mail
+    // Gmail mail transport
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -50,11 +43,11 @@ export default async function handler(req, res) {
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: userEmail,
-      subject: "Your Ebook Download",
+      subject: "Your Download Link",
       html: `
-        <h2>Thank you for your purchase!</h2>
-        <p>Click below to download your ebook:</p>
-        <a href="${process.env.PDF_URL}">Download Ebook</a>
+        <h2>Thank you for purchasing!</h2>
+        <p>Your download link:</p>
+        <a href="${process.env.PDF_URL}">Click to Download</a>
       `,
     });
 
