@@ -1,36 +1,53 @@
-import crypto from "crypto";
-
-let lastSuccessToken = null;  // Stores latest success token (in memory)
+import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+  const secret = process.env.WEBHOOK_SECRET;
+
+  // validate secret
+  const signature = req.headers["x-webhook-signature"];
+  if (!signature || signature !== secret) {
+    return res.status(401).json({ error: "Invalid Signature" });
   }
+
+  const event = req.body;
+  const order = event?.data?.order;
+  const customer = event?.data?.customer_details;
+
+  if (!order || !customer) {
+    return res.status(400).json({ error: "Invalid Payload" });
+  }
+
+  if (order.order_status !== "PAID") {
+    return res.status(200).json({ status: "Ignored" });
+  }
+
+  const userEmail = customer.customer_email;
 
   try {
-    const event = req.body;
+    // Gmail transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS
+      }
+    });
 
-    console.log("Webhook Received:", event);
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: userEmail,
+      subject: "Your Ebook Download",
+      html: `
+        <h2>Thank you for your purchase!</h2>
+        <p>Click below to download your ebook:</p>
+        <a href="${process.env.PDF_URL}">Download Ebook</a>
+      `
+    });
 
-    const orderStatus = event?.data?.order?.order_status;
+    return res.status(200).json({ success: true });
 
-    if (orderStatus === "PAID") {
-      // Generate secure token
-      lastSuccessToken = crypto.randomBytes(16).toString("hex");
-
-      console.log("Generated Token:", lastSuccessToken);
-
-      return res.status(200).json({ success: true });
-    }
-
-    return res.status(200).json({ ignored: true });
-
-  } catch (e) {
-    console.error("Webhook Error:", e);
-    return res.status(500).json({ error: "Server Error" });
+  } catch (err) {
+    console.error("Mail Error:", err);
+    return res.status(500).json({ error: err.message });
   }
-}
-
-export function getToken() {
-  return lastSuccessToken;
 }
