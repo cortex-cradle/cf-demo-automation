@@ -1,18 +1,16 @@
+<h1 id="msg">Payment not found. Please wait…</h1>
+
 <script>
-async function go() {
-  const params = new URLSearchParams(location.search);
-  const token = params.get("token");
+async function checkPayment() {
+    let response = await fetch("/api/check");
+    let data = await response.json();
 
-  const r = await fetch(`/api/verify?token=${token}`);
-  const d = await r.json();
-
-  if (d.valid) {
-    // 🔥 yaha product URL dalna hai — yahi tumhara FINAL redirect
-    window.location.href = "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code";
-  } else {
-    document.body.innerHTML = "<h2>Payment not found. Please wait…</h2>";
-  }
+    if (data.paid === true) {
+        window.location.href = data.url;
+    } else {
+        setTimeout(checkPayment, 1500);
+    }
 }
 
-go();
+checkPayment();
 </script>
