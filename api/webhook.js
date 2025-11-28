@@ -1,30 +1,29 @@
-import crypto from "crypto";
-
-let latestToken = null;
+import fs from 'fs';
+import path from 'path';
 
 export default async function handler(req, res) {
   try {
-    const body = await getRawBody(req).then(b => JSON.parse(b.toString()));
+    const event = req.body;
 
-    const signature = req.headers["x-webhook-signature"];
-    if (!signature || signature !== process.env.WEBHOOK_SECRET) {
-      return res.status(401).json({ error: "Invalid signature" });
+    // If payment is PAID
+    if (event?.data?.order?.order_status === "PAID") {
+
+      // write download redirect link
+      const data = {
+        paid: true,
+        url: "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code?payment_status=success&secret_key=EBOOK_SECRET_OK"
+      };
+
+      const filePath = path.join(process.cwd(), "payment.json");
+      fs.writeFileSync(filePath, JSON.stringify(data));
+
+      console.log("Payment saved:", data);
     }
 
-    const status = body?.data?.order?.order_status;
+    return res.status(200).json({ message: "OK" });
 
-    if (status === "PAID") {
-      latestToken = crypto.randomBytes(16).toString("hex");
-      console.log("Payment Success — Token:", latestToken);
-    }
-
-    return res.status(200).json({ success: true });
-
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  } catch (e) {
+    console.log("Webhook Error:", e);
+    return res.status(500).json({ error: "Webhook failed" });
   }
 }
-
-export const config = {
-  api: { bodyParser: false }
-};
