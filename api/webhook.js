@@ -1,42 +1,40 @@
-import { writeFileSync, readFileSync } from "fs";
-import path from "path";
-
 export const config = {
   api: {
-    bodyParser: true
-  }
+    bodyParser: false,
+  },
+};
+
+let latestPayment = {
+  paid: false,
+  url: null,
 };
 
 export default async function handler(req, res) {
   try {
-    const body = req.body;
+    let body = "";
+    await new Promise(resolve => {
+      req.on("data", chunk => (body += chunk));
+      req.on("end", resolve);
+    });
 
-    // Cashfree payment form ka event type
-    if (!body || body.type !== "PAYMENT_FORM_ORDER_WEBHOOK") {
-      return res.status(400).json({ message: "Invalid Webhook" });
+    const data = JSON.parse(body);
+
+    if (data?.data?.order?.order_status === "PAID") {
+      console.log("PAYMENT SUCCESS!");
+
+      latestPayment = {
+        paid: true,
+        url: "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code?payment_status=success&secret_key=EBOOK_SECRET_K3Y_V2P8Q6R4S7T9W1X5Z0"
+      };
     }
 
-    const orderId = body.data.order.order_id;
-    const status = body.data.order.order_status;
-
-    const filePath = path.join(process.cwd(), "payment.json");
-
-    let data = {};
-    try {
-      data = JSON.parse(readFileSync(filePath, "utf8"));
-    } catch (err) {}
-
-    // Save payment status
-    data[orderId] = status;
-
-    writeFileSync(filePath, JSON.stringify(data, null, 2));
-
-    console.log("Saved:", data);
-
-    return res.status(200).json({ success: true });
-
+    res.status(200).json({ success: true });
   } catch (err) {
-    console.log("Webhook Error:", err);
-    return res.status(500).json({ error: "Webhook Failed" });
+    console.error("Webhook Error:", err);
+    res.status(500).json({ error: "Webhook failed" });
   }
+}
+
+export function getPaymentStatus() {
+  return latestPayment;
 }
