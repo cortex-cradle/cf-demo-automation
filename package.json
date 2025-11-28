@@ -1,9 +1,0 @@
-{
-  "name": "cashfree-mail",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "nodemailer": "latest",
-    "raw-body": "latest"
-  }
-}
