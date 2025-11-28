@@ -1,18 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirecting...</title>
+  <meta charset="UTF-8"/>
+</head>
+<body>
 <script>
-const url = new URL(window.location.href);
-const orderId = url.searchParams.get("order_id");
+async function verifyAndRedirect() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
 
-async function verify() {
-    const res = await fetch(`/api/check?order_id=${orderId}`);
-    const data = await res.json();
+    if (!token) {
+        document.body.innerHTML = "<h2>Unauthorized</h2>";
+        return;
+    }
 
-    if (data.paid === true) {
+    // Call backend verification
+    const verify = await fetch("/api/verify?token=" + token);
+    const result = await verify.json();
+
+    if (result.valid) {
+        // Final redirect to your product page
         window.location.href =
-          "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code?payment_status=success&secret_key=EBOOK_SECRET_K3Y_V2P8Q6R4S7T9W1X5Z0";
+          "https://bookmintor.shop/PremAnand%20Ji%E2%80%99s%20Zero-Disturbance%20Mindset%20Code"
+          + "?payment_status=success&secret_key=EBOOK_SECRET_K3Y_V2P8Q6R4S7T9W1X5Z0";
     } else {
-        setTimeout(verify, 1500);
+        document.body.innerHTML = "<h2>Invalid or Expired Session</h2>";
     }
 }
-
-verify();
+verifyAndRedirect();
 </script>
+</body>
+</html>
