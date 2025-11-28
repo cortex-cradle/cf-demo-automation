@@ -1,4 +1,5 @@
 {
-  "paid": false,
-  "url": ""
+  "name": "cashfree-automation",
+  "version": "1.0.0",
+  "dependencies": {}
 }
